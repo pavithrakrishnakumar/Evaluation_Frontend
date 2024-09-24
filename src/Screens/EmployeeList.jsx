@@ -10,11 +10,13 @@ import { Toolbar, Button } from "@mui/material";
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import DownloadIcon from '@mui/icons-material/Download';
+import LogoutIcon from '@mui/icons-material/Logout';
 import EmployeeFilter from "./employeeFilter";
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import { CSVLink } from "react-csv"; // Import CSVLink from react-csv
-
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
@@ -23,17 +25,9 @@ const EmployeeList = () => {
   const employeesPerPage = 8; 
   const [openFilter, setOpenFilter] = useState(false);
 
-  function createData(name, Status, Designation, Department, Role) {
-    return { name, Status, Designation, Department, Role };
-  }
+  const nav = useNavigate();
+
   
-  const rows = [
-    createData('Frozen yoghurt', 159, 6.0, 24, 4.0, 1),
-    createData('Ice cream sandwich', 237, 9.0, 37, 4.3, 1),
-    createData('Eclair', 262, 16.0, 24, 6.0, 1),
-    createData('Cupcake', 305, 3.7, 67, 4.3, 1),
-    createData('Gingerbread', 356, 16.0, 49, 3.9, 1),
-  ];
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -44,6 +38,14 @@ const EmployeeList = () => {
         },
       });
       const data = await response.json();
+
+      if (data.error === "Unauthorized") {
+        localStorage.removeItem('token');
+        toast.error("Token Expired!", {
+          autoClose: 800, // Duration of the toast in milliseconds
+          });
+              nav("/");
+      }
       console.log({ data });
       setEmployees(data);
       setFilteredEmployees(data);
@@ -82,6 +84,10 @@ const EmployeeList = () => {
   const handleClose = () => {
     setOpenFilter(false);
   };
+  const logout = () => {
+    localStorage.removeItem('token')
+    nav('/')
+  };
 
   // Preparing CSV data
   const csvData = filteredEmployees.map(employee => ({
@@ -91,6 +97,10 @@ const EmployeeList = () => {
     Department: employee.department,
     Role: employee.role
   }));
+
+  if (employees.length ===0 ) {
+    return <></>
+  }
 
   return (
     <div className="">
@@ -133,6 +143,14 @@ const EmployeeList = () => {
               Export
             </Button>
           </CSVLink>
+          <Button
+            variant="outlined"
+            sx={{ borderColor: 'white', color: 'white', height: '45px', width: '100px' }}
+            startIcon={<LogoutIcon />}
+            onClick={logout}
+          >
+            Logout
+          </Button>
         </div>
       </Toolbar>
 
@@ -143,30 +161,31 @@ const EmployeeList = () => {
             <TableHead>
               <TableRow style={{ backgroundColor: '#f0f0f0' }}> {/* Light color for contrast */}
                 <TableCell style={{ fontSize: '16px', fontWeight: '600' }}>Name</TableCell>
-                <TableCell style={{ fontSize: '16px', fontWeight: '600' }} align="right">Status</TableCell>
-                <TableCell style={{ fontSize: '16px', fontWeight: '600' }} align="right">Designation</TableCell>
-                <TableCell style={{ fontSize: '16px', fontWeight: '600' }} align="right">Department</TableCell>
-                <TableCell style={{ fontSize: '16px', fontWeight: '600' }} align="right">Role</TableCell>
+                <TableCell style={{ fontSize: '16px', fontWeight: '600' }} align="center">Status</TableCell>
+                <TableCell style={{ fontSize: '16px', fontWeight: '600' }} align="center">Designation</TableCell>
+                <TableCell style={{ fontSize: '16px', fontWeight: '600' }} align="center">Department</TableCell>
+                <TableCell style={{ fontSize: '16px', fontWeight: '600' }} align="center">Role</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {currentEmployees.map((employee) => (
-                <TableRow key={employee.name} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+              {currentEmployees.map((employee, index) => (
+                <TableRow key={index} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                   <TableCell component="th" scope="row">{employee.name}</TableCell>
-                  <TableCell align="right">{employee.status}</TableCell>
-                  <TableCell align="right">{employee.designation}</TableCell>
-                  <TableCell align="right">{employee.department}</TableCell>
-                  <TableCell align="right">{employee.role}</TableCell>
+                  <TableCell align="center">{employee.status}</TableCell>
+                  <TableCell align="center">{employee.designation}</TableCell>
+                  <TableCell align="center">{employee.department}</TableCell>
+                  <TableCell align="center">{employee.role}</TableCell>
                 </TableRow>
               ))}
+              {currentEmployees.length===0 && <TableCell colSpan={5} align="center">No Employee Found</TableCell> }
             </TableBody>
           </Table>
         </TableContainer>
       </div>
 
       {/* Pagination */}
-      <div className="mt-4 flex justify-between items-center" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', marginRight: '38px' }}>
-        <div>
+      <div className="mt-4 flex justify-between items-center" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', marginRight: '38px' }}>
+        <div style={{ marginBottom: '16px'}}>
           {Array.from(
             { length: Math.ceil(filteredEmployees.length / employeesPerPage) },
             (_, index) => (
@@ -188,9 +207,11 @@ const EmployeeList = () => {
         </div>
       </div>
 
-      <EmployeeFilter open={openFilter} onClose={handleClose} />
+      {openFilter && <EmployeeFilter open={openFilter} onClose={handleClose} setFilteredEmployees={setFilteredEmployees} />}
     </div>
   );
 };
+
+
 
 export default EmployeeList;

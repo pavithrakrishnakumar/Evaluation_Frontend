@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import  { useEffect, useState } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -14,6 +14,8 @@ function Login() {
   const [isUsernameValid, setIsUsernameValid] = useState(true);
   const [isPasswordValid, setIsPasswordValid] = useState(true);
   const [rememberMe, setRememberMe] = useState(false);
+
+  const nav =useNavigate()
 
   const myStyle = {
     backgroundImage: "url('https://i.pinimg.com/564x/75/de/07/75de0749aa17d31912274fc15ba4545e.jpg')",
@@ -58,19 +60,18 @@ function Login() {
       } else {
         localStorage.removeItem("rememberMe");
       }
-
+      
       toast.success("Login successful!", {
-        onClose: () => {
-          setTimeout(() => {
-            window.location.href = "/employee";
-          }, 1000); // Redirect after 1 second
-        },
-        autoClose: 2000, // Duration of the toast in milliseconds
+        autoClose: 800, // Duration of the toast in milliseconds
+        onClose: ()=>{
+          nav("/employee");
+        }
       });
+      
     } catch (error) {
       setErrorMessage("Invalid username or password");
       toast.error("Invalid username or password", {
-        autoClose: 2000, // Duration of the toast in milliseconds
+        autoClose: 800, // Duration of the toast in milliseconds
       });
       console.error("Login error", error);
     }
@@ -79,6 +80,13 @@ function Login() {
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible);
   };
+
+  useEffect(() => {
+    if (localStorage.getItem("token")) {
+      nav("/employee")
+    }
+  }, [])
+  
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100" style={myStyle}>
@@ -149,7 +157,7 @@ function Login() {
           </button>
         </form>
         <div className="text-sm text-center mt-4">
-          <p className="text-gray-600">Don't have an account?{" "}
+          <p className="text-gray-600">Dont have an account?{" "}
             <Link to="/signup" className="text-[#9A1750] hover:text-[#a11b5a]">Sign up here</Link>
           </p>
         </div>

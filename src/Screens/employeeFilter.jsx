@@ -1,8 +1,11 @@
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-const EmployeeFilter = ({ open, onClose }) => {
+// eslint-disable-next-line react/prop-types
+const EmployeeFilter = ({ open, onClose, setFilteredEmployees }) => {
+
+  const [filterData, setFilterData] = useState({})
   const [designation, setDesignation] = useState('');
   const [department, setDepartment] = useState('');
 
@@ -22,11 +25,40 @@ const EmployeeFilter = ({ open, onClose }) => {
   };
 
   // Apply filters (you can customize this function as per your requirement)
-  const handleApply = () => {   
-    console.log('Filters Applied: ', { designation, department });
+  const handleApply = async () => {   
+    let url = `http://localhost:3000/employee/all?`
+
+    if (department.length!==0) url+= `department=${department}`
+    if (designation.length!==0) url+= `designation=${designation}`
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    const data = await response.json();
+    console.log(data)
+    setFilteredEmployees(data);
     // Handle filter logic or callback here
     onClose(); // Close modal after applying filters
   };
+
+
+  useEffect(() => {
+    const fetchFilter = async () => {
+      const response = await fetch("http://localhost:3000/employee/allfilter", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await response.json();
+      setFilterData(data);
+    };
+
+    fetchFilter();
+  }, []);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -55,9 +87,11 @@ const EmployeeFilter = ({ open, onClose }) => {
             onChange={handleDesignationChange}
             label="Designation"
           >
-            <MenuItem value="hr">HR</MenuItem>
-            <MenuItem value="pm">Project Manager (PM)</MenuItem>
-            <MenuItem value="ceo">CEO</MenuItem>
+
+            {filterData?.designation?.map((el, index)=>{
+              return <MenuItem  key={index } value={el}>{el}</MenuItem>
+
+            })}
           </Select>
         </FormControl>
 
@@ -69,9 +103,9 @@ const EmployeeFilter = ({ open, onClose }) => {
             onChange={handleDepartmentChange}
             label="Department"
           >
-            <MenuItem value="testing">Testing</MenuItem>
-            <MenuItem value="frontend">Frontend</MenuItem>
-            <MenuItem value="backend">Backend</MenuItem>
+            {filterData?.department?.map((el, index)=>{
+              return <MenuItem  key={index } value={el}>{el}</MenuItem>
+            })}
           </Select>
         </FormControl>
       </DialogContent>

@@ -42,6 +42,7 @@ function Signup() {
   };
 
   const handleSignup = async (e) => {
+    localStorage.removeItem('token')
     e.preventDefault();
     setErrorMessage("");
     setSuccessMessage("");
@@ -125,6 +126,7 @@ function Signup() {
   // Redirect to the login page
   const redirectToLogin = () => {
     navigate("/");
+    localStorage.removeItem('token')
   };
 
   return (
