@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { useCookies } from "react-cookie"; // For handling cookies
 import { useNavigate } from "react-router-dom"; // For navigation
+const apiUrl = import.meta.env.VITE_API_URL
 
 function Signup() {
   const [username, setUsername] = useState("");
@@ -69,7 +70,7 @@ function Signup() {
     }
 
     try {
-      const response = await fetch("http://localhost:3000/auth/register", {
+      const response = await fetch(`${apiUrl}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -85,6 +86,7 @@ function Signup() {
       if (response.ok) {
         setSuccessMessage("Signup successful! You can now log in.");
         toast.success("Signup successful! You can now log in.");
+        navigate("/")
       } else {
         setErrorMessage(data.message || "Signup failed. Please try again.");
         toast.error(data.message || "Signup failed. Please try again.");
@@ -92,6 +94,7 @@ function Signup() {
     } catch (error) {
       setErrorMessage("Signup failed. Please try again.");
       toast.error("Signup failed. Please try again.");
+      console.error(error)
     }
   };
 

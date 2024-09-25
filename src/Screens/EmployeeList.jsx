@@ -17,64 +17,80 @@ import InputAdornment from '@mui/material/InputAdornment';
 import { CSVLink } from "react-csv"; // Import CSVLink from react-csv
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import CircularProgress from '@mui/material/CircularProgress';
+
+const apiUrl = import.meta.env.VITE_API_URL
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);
-  const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [paginationDetails, setPaginationDetails] = useState([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const employeesPerPage = 8; 
   const [openFilter, setOpenFilter] = useState(false);
+  const [pageQueryUpdated, setPageQueryUpdated] = useState(false);
+  const [filterQuery, setFilterQuery] = useState({
+    department: '',
+    designation: ''
+  });
+  const [isLoading, setLoading] = useState(true)
+  
 
   const nav = useNavigate();
 
-  
+  const fetchEmployees = async () => {
+    let apiUrlQuery = `${apiUrl}/employee/all?`
+    if (filterQuery.department?.length !==0) apiUrlQuery+=`department=${filterQuery.department}&`;
+    if (filterQuery.designation?.length !==0) apiUrlQuery+=`designation=${filterQuery.designation}&`;
+    if (search?.length !==0) apiUrlQuery+=`name=${search}&`;
+    if (pageQueryUpdated===false && currentPage) apiUrlQuery+=`page=${currentPage}`;
+    setPageQueryUpdated(false)
+    setLoading(true)
+
+    const response = await fetch(apiUrlQuery, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    const data = await response.json();
+
+    if (data.error === "Unauthorized") {
+      localStorage.removeItem('token');
+      toast.error("Token Expired!", {
+        autoClose: 800, // Duration of the toast in milliseconds
+        });
+            nav("/");
+    }
+    setLoading(false)
+    setEmployees(data.employeeData);
+    setPaginationDetails(data.paginationData);
+    setCurrentPage(data.paginationData.currentPage)
+  };
+
 
   useEffect(() => {
-    const fetchEmployees = async () => {
-      const response = await fetch("http://localhost:3000/employee/all", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      const data = await response.json();
+    const handler = setTimeout(() => {
+      fetchEmployees();
+    }, 800);
 
-      if (data.error === "Unauthorized") {
-        localStorage.removeItem('token');
-        toast.error("Token Expired!", {
-          autoClose: 800, // Duration of the toast in milliseconds
-          });
-              nav("/");
-      }
-      console.log({ data });
-      setEmployees(data);
-      setFilteredEmployees(data);
+    return () => {
+      clearTimeout(handler);
     };
+  }, [search, currentPage]);
 
-    fetchEmployees();
-  }, []);
+  useEffect(()=>{
+    setPageQueryUpdated(true)
+  },[search, filterQuery])
+
+  
 
   // Handle search functionality (filtering by name, designation, or department)
   const handleSearch = (e) => {
     const searchTerm = e.target.value.toLowerCase();
     setSearch(searchTerm);
-    const filtered = employees.filter(
-      (employee) =>
-        employee.name.toLowerCase().includes(searchTerm) ||
-        employee.designation.toLowerCase().includes(searchTerm) ||
-        employee.department.toLowerCase().includes(searchTerm)
-    );
-    setFilteredEmployees(filtered);
   };
 
   // Pagination logic
-  const indexOfLastEmployee = currentPage * employeesPerPage;
-  const indexOfFirstEmployee = indexOfLastEmployee - employeesPerPage;
-  const currentEmployees = filteredEmployees.slice(
-    indexOfFirstEmployee,
-    indexOfLastEmployee
-  );
-
+ 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
   
   const handleFilter = () => {
@@ -90,17 +106,13 @@ const EmployeeList = () => {
   };
 
   // Preparing CSV data
-  const csvData = filteredEmployees.map(employee => ({
+  const csvData = employees.map(employee => ({
     Name: employee.name,
     Status: employee.status,
     Designation: employee.designation,
     Department: employee.department,
     Role: employee.role
   }));
-
-  if (employees.length ===0 ) {
-    return <></>
-  }
 
   return (
     <div className="">
@@ -154,8 +166,13 @@ const EmployeeList = () => {
         </div>
       </Toolbar>
 
+  
+      <div style={{ display: isLoading ? 'flex' : 'none', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+      <CircularProgress color="#9A1750" />
+    </div>
+
       {/* Employee table */}
-      <div style={{ padding: '40px', marginTop: '5px' }}>
+      <div style={{ display: !isLoading ? 'block' : 'none' ,padding: '40px', marginTop: '5px' }}>
         <TableContainer component={Paper}>
           <Table sx={{ minWidth: 650 }} aria-label="simple table">
             <TableHead>
@@ -168,7 +185,7 @@ const EmployeeList = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {currentEmployees.map((employee, index) => (
+              {employees.map((employee, index) => (
                 <TableRow key={index} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                   <TableCell component="th" scope="row">{employee.name}</TableCell>
                   <TableCell align="center">{employee.status}</TableCell>
@@ -177,23 +194,23 @@ const EmployeeList = () => {
                   <TableCell align="center">{employee.role}</TableCell>
                 </TableRow>
               ))}
-              {currentEmployees.length===0 && <TableCell colSpan={5} align="center">No Employee Found</TableCell> }
+              {employees.length===0 && <TableCell colSpan={5} align="center">No Employee Found</TableCell> }
             </TableBody>
           </Table>
         </TableContainer>
       </div>
 
       {/* Pagination */}
-      <div className="mt-4 flex justify-between items-center" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', marginRight: '38px' }}>
+      <div className="mt-4 flex justify-between items-center" style={{ display:  !isLoading ? 'flex' : 'none' , flexDirection: 'column', justifyContent: 'flex-end', marginRight: '38px' }}>
         <div style={{ marginBottom: '16px'}}>
           {Array.from(
-            { length: Math.ceil(filteredEmployees.length / employeesPerPage) },
+            { length: paginationDetails.numOfPages },
             (_, index) => (
               <button
                 key={index}
                 onClick={() => paginate(index + 1)}
-                className={`mx-1 px-3 py-1 rounded border ${currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-white text-blue-500"} border-blue-500`}
-                style={{ backgroundColor: '#9A1750', borderColor: 'white', color: 'white', fontSize: '16px', fontWeight: '600' }}
+                className={`mx-1 px-3 py-1 rounded border bg-white text-blue-500 border-blue-500`}
+                style={{ backgroundColor : paginationDetails.currentPage === index + 1 ? "#9A1750" : 'white',  borderColor:"#9A1750" , color:paginationDetails.currentPage === index + 1 ? "white" : "black", fontSize: '16px', fontWeight: '600' }}
               >
                 {index + 1}
               </button>
@@ -202,12 +219,12 @@ const EmployeeList = () => {
         </div>
         <div>
           <p style={{ fontSize: '16px', fontWeight: '600' }}>
-            Showing {indexOfFirstEmployee + 1} to {Math.min(indexOfLastEmployee, filteredEmployees.length)} of {filteredEmployees.length} employees
+            Showing {(paginationDetails.limit * (paginationDetails.currentPage - 1)) + 1} to {paginationDetails.total < paginationDetails.limit * paginationDetails.currentPage ? paginationDetails.total : paginationDetails.limit * paginationDetails.currentPage } of {paginationDetails.total} employees
           </p>
         </div>
       </div>
 
-      {openFilter && <EmployeeFilter open={openFilter} onClose={handleClose} setFilteredEmployees={setFilteredEmployees} />}
+      {openFilter && <EmployeeFilter open={openFilter} onClose={handleClose} filterQuery={filterQuery} setFilterQuery={setFilterQuery} fetchEmployees={fetchEmployees}/>}
     </div>
   );
 };

@@ -2,52 +2,44 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, 
 import CloseIcon from '@mui/icons-material/Close';
 import { useEffect, useState } from 'react';
 
+const apiUrl = import.meta.env.VITE_API_URL
+
 // eslint-disable-next-line react/prop-types
-const EmployeeFilter = ({ open, onClose, setFilteredEmployees }) => {
+const EmployeeFilter = ({ open, onClose, filterQuery = {},setFilterQuery , fetchEmployees}) => {
 
   const [filterData, setFilterData] = useState({})
-  const [designation, setDesignation] = useState('');
-  const [department, setDepartment] = useState('');
 
   // Handle dropdown changes
   const handleDesignationChange = (event) => {
-    setDesignation(event.target.value);
+    const filterQueryCopy = JSON.parse(JSON.stringify(filterQuery))
+    filterQueryCopy.designation = event.target.value
+    setFilterQuery(filterQueryCopy)
   };
 
   const handleDepartmentChange = (event) => {
-    setDepartment(event.target.value);
+    const filterQueryCopy = JSON.parse(JSON.stringify(filterQuery))
+    filterQueryCopy.department = event.target.value
+    setFilterQuery(filterQueryCopy)
   };
 
   // Reset fields
   const handleReset = () => {
-    setDesignation('');
-    setDepartment('');
+    const filterQueryCopy = JSON.parse(JSON.stringify(filterQuery))
+    filterQueryCopy.department = ''
+    filterQueryCopy.designation = ''
+    setFilterQuery(filterQueryCopy)
   };
 
   // Apply filters (you can customize this function as per your requirement)
-  const handleApply = async () => {   
-    let url = `http://localhost:3000/employee/all?`
-
-    if (department.length!==0) url+= `department=${department}`
-    if (designation.length!==0) url+= `designation=${designation}`
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    });
-    const data = await response.json();
-    console.log(data)
-    setFilteredEmployees(data);
-    // Handle filter logic or callback here
+  const handleApply = () => {   
+    fetchEmployees();
     onClose(); // Close modal after applying filters
   };
 
 
   useEffect(() => {
     const fetchFilter = async () => {
-      const response = await fetch("http://localhost:3000/employee/allfilter", {
+      const response = await fetch(`${apiUrl}/employee/allfilter`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -83,7 +75,7 @@ const EmployeeFilter = ({ open, onClose, setFilteredEmployees }) => {
         <FormControl fullWidth sx={{ marginBottom: 2 }}>
           <InputLabel>Designation</InputLabel>
           <Select
-            value={designation}
+            value={filterQuery.designation}
             onChange={handleDesignationChange}
             label="Designation"
           >
@@ -99,7 +91,7 @@ const EmployeeFilter = ({ open, onClose, setFilteredEmployees }) => {
         <FormControl fullWidth sx={{ marginBottom: 2 }}>
           <InputLabel>Department</InputLabel>
           <Select
-            value={department}
+            value={filterQuery.department}
             onChange={handleDepartmentChange}
             label="Department"
           >

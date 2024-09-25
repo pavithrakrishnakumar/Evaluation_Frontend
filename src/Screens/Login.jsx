@@ -5,6 +5,8 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+const apiUrl = import.meta.env.VITE_API_URL
+
 
 function Login() {
   const [username, setUsername] = useState("");
@@ -51,7 +53,7 @@ function Login() {
     setErrorMessage("");
 
     try {
-      const response = await axios.post("http://localhost:3000/auth/login", { username, password });
+      const response = await axios.post(`${apiUrl}/auth/login`, { username, password });
       const { access_token } = response.data;
       localStorage.setItem("token", access_token);
 
